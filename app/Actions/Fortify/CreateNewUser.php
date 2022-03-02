@@ -22,6 +22,7 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input)
     {
+        $otp=mt_rand(1000,9999);
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
@@ -29,11 +30,13 @@ class CreateNewUser implements CreatesNewUsers
             'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature() ? ['required', 'accepted'] : '',
         ])->validate();
 
-        return DB::transaction(function () use ($input) {
+        return DB::transaction(function () use ($input,$otp) {
             return tap(User::create([
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'password' => Hash::make($input['password']),
+                'remember_token' => Hash::make($otp),
+                'otp' => $otp,
             ]), function (User $user) {
                 $this->createTeam($user);
             });
@@ -41,7 +44,8 @@ class CreateNewUser implements CreatesNewUsers
     }
 
     /**
-     * Create a personal team for the user.
+     * Create a personal team for the user.php artisan migrate --path=/database/migrations/2014_10_12_000000_create_users_table.php
+
      *
      * @param  \App\Models\User  $user
      * @return void
